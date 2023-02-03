@@ -141,8 +141,8 @@ export interface Props<
   escapeClearsValue: boolean;
   /** Custom method to filter whether an option should be displayed in the menu */
   filterOption:
-    | ((option: FilterOptionOption<Option>, inputValue: string) => boolean)
-    | null;
+  | ((option: FilterOptionOption<Option>, inputValue: string) => boolean)
+  | null;
   /**
    * Formats group labels in the menu as React components
    *
@@ -275,6 +275,8 @@ export interface Props<
   form?: string;
   /** Marks the value-holding input as required for form validation */
   required?: boolean;
+  /** Limit number of chips shown in Multi select. */
+  multiMaxChipsToDisplay?: number;
 }
 
 export const defaultProps = {
@@ -318,6 +320,7 @@ export const defaultProps = {
   tabIndex: 0,
   tabSelectsValue: true,
   unstyled: false,
+  multiMaxChipsToDisplay: 0,  // 0 will display all and -1 to display none
 };
 
 interface State<
@@ -402,11 +405,11 @@ function buildCategorizedOptions<
           .filter((categorizedOption) => isFocusable(props, categorizedOption));
         return categorizedOptions.length > 0
           ? {
-              type: 'group' as const,
-              data: groupOrOption,
-              options: categorizedOptions,
-              index: groupOrOptionIndex,
-            }
+            type: 'group' as const,
+            data: groupOrOption,
+            options: categorizedOptions,
+            index: groupOrOptionIndex,
+          }
           : undefined;
       }
       const categorizedOption = toCategorizedOption(
@@ -687,9 +690,9 @@ export default class Select<
     const newInputIsHiddenState =
       inputIsHiddenAfterUpdate != null && props !== prevProps
         ? {
-            inputIsHidden: inputIsHiddenAfterUpdate,
-            inputIsHiddenAfterUpdate: undefined,
-          }
+          inputIsHidden: inputIsHiddenAfterUpdate,
+          inputIsHiddenAfterUpdate: undefined,
+        }
         : {};
 
     let newAriaSelection = ariaSelection;
@@ -1633,11 +1636,11 @@ export default class Select<
       }),
       ...(this.hasValue()
         ? ariaSelection?.action === 'initial-input-focus' && {
-            'aria-describedby': this.getElementId('live-region'),
-          }
+          'aria-describedby': this.getElementId('live-region'),
+        }
         : {
-            'aria-describedby': this.getElementId('placeholder'),
-          }),
+          'aria-describedby': this.getElementId('placeholder'),
+        }),
     };
 
     if (!isSearchable) {
@@ -1697,6 +1700,7 @@ export default class Select<
       isMulti,
       inputValue,
       placeholder,
+      multiMaxChipsToDisplay
     } = this.props;
     const { selectValue, focusedValue, isFocused } = this.state;
 
@@ -1715,34 +1719,41 @@ export default class Select<
     }
 
     if (isMulti) {
+      let extraOptionCount = 0;
+      // if (multiMaxChipsToDisplay) extraOptionCount = this.selectOption.filter((opt, index) => index < multiMaxChipsToDisplay).length || 0;
       return selectValue.map((opt, index) => {
-        const isOptionFocused = opt === focusedValue;
-        const key = `${this.getOptionLabel(opt)}-${this.getOptionValue(opt)}`;
+        if (multiMaxChipsToDisplay > index) {
+          const isOptionFocused = opt === focusedValue;
+          const key = `${this.getOptionLabel(opt)}-${this.getOptionValue(opt)}`;
 
-        return (
-          <MultiValue
-            {...commonProps}
-            components={{
-              Container: MultiValueContainer,
-              Label: MultiValueLabel,
-              Remove: MultiValueRemove,
-            }}
-            isFocused={isOptionFocused}
-            isDisabled={isDisabled}
-            key={key}
-            index={index}
-            removeProps={{
-              onClick: () => this.removeValue(opt),
-              onTouchEnd: () => this.removeValue(opt),
-              onMouseDown: (e) => {
-                e.preventDefault();
-              },
-            }}
-            data={opt}
-          >
-            {this.formatOptionLabel(opt, 'value')}
-          </MultiValue>
-        );
+          return (
+            <MultiValue
+              {...commonProps}
+              components={{
+                Container: MultiValueContainer,
+                Label: MultiValueLabel,
+                Remove: MultiValueRemove,
+              }}
+              isFocused={isOptionFocused}
+              isDisabled={isDisabled}
+              key={key}
+              index={index}
+              removeProps={{
+                onClick: () => this.removeValue(opt),
+                onTouchEnd: () => this.removeValue(opt),
+                onMouseDown: (e) => {
+                  e.preventDefault();
+                },
+              }}
+              data={opt}
+            >
+              {this.formatOptionLabel(opt, 'value')}
+            </MultiValue>
+          );
+        }
+        else {
+          extraOptionCount++;
+        }
       });
     }
 

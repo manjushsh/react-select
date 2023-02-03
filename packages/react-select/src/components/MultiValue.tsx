@@ -34,6 +34,7 @@ export interface MultiValueProps<
   isDisabled: boolean;
   removeProps: JSX.IntrinsicElements['div'];
   index: number;
+  multiMaxChipsToDisplay?: boolean;
 }
 
 export const multiValueCSS = <
